@@ -7,10 +7,9 @@ import pandas as pd
 from tkinter import font as tkFont
 import openpyxl
 from CTkToolTip import *
-from PIL import Image, ImageTk, ImageOps
 
 #importing pyautogui will cause the app to not rescale when moving between windows, poor resolution, but stable columns!
-import pyautogui
+#import pyautogui
 #from screeninfo import get_monitors
 import ctypes
 
@@ -80,8 +79,7 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.train_frame_right.grid(row=0, column=1, padx=5, pady=5, sticky='NSEW')
         self.train_frame_right.rowconfigure(0, weight=1)
         self.train_frame_right.rowconfigure(1, weight=1)
-        self.train_frame_right.rowconfigure(2, weight=20)
-        self.train_frame_right.rowconfigure(3, weight=1)
+        self.train_frame_right.rowconfigure(2, weight=16)
         #self.train_frame_right.rowconfigure(3, weight=1)
         self.train_frame_right.columnconfigure(0, weight=1)
         self.train_frame_right.grid_propagate(False)
@@ -117,38 +115,12 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
                                     font=("Inter", 14, "bold")))
         reset_btn.grid(row=0, column=2, columnspan=1, padx=5, pady=10, sticky='NEW')
 
-        #add a canvas widget to row 1 of the right frame
-        self.canvas_frame = ctk.CTkFrame(master=self.train_frame_right, corner_radius=10, fg_color='red', width=600, height=200)
-        self.canvas_frame.grid(row=2, column=0, padx=5, pady=5, sticky='NEWS')
-        self.canvas = Canvas(self.canvas_frame, bg=LABEL_COLOR, bd=0, highlightthickness=0, relief='ridge', width=600, height=200)
-        #self.canvas = Canvas(self.canvas_frame, bg='red', bd=0, highlightthickness=0, relief='ridge', width=600, height=200)
-        #self.canvas.minsize(400, 200)
-        #self.canvas.create_text(self.canvas.winfo_reqwidth() / 2, self.canvas.winfo_reqheight() / 2, fill="white",
-        #                        font=("Inter", 12, "bold"),
-        #                        anchor="center")
-        self.canvas.pack(expand=True, fill="both")
-        #place dnd image on the canvas
-        self.image = Image.open("images/dndimage.png")
-        self.original_image=self.image
-        self.after_idle(self.update_canvas)
-
-
-
-        self.canvas.drop_target_register(DND_ALL)
-        self.canvas.dnd_bind("<<Drop>>", self.get_path)
-        self.canvas.bind("<Configure>", self.on_resize)
-
-
 
         self.data_tree=ttk.Treeview(master = self.train_frame_right)
 
-        #self.scaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 100
-        self.scale_factor=0
-        self.data_loaded = False
-        self.get_scale_factor()
+        self.scaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 100
         #self.scaleFactor=1
-        print(self.scale_factor)
-        self.orig_scale=self.scale_factor
+        print(self.scaleFactor)
 
         self.checkboxes_frame_outer = None
 
@@ -160,14 +132,7 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.filename_var.set(self.filename)
         self.file_open()
 
-    def update_canvas(self):
-        self.canvas_width = self.canvas.winfo_reqwidth()
-        self.canvas_height = self.canvas.winfo_reqheight()
-        self.original_image = self.image
-        self.image = self.original_image.resize((self.canvas_width, self.canvas_height))
-        self.photo = ImageTk.PhotoImage(image=self.image)
-        self.image_on_canvas = self.canvas.create_image(int(self.canvas_width / 2), int(self.canvas_height / 2),
-                                                        image=self.photo)
+
     def get_path(self, event):
         #Get the filepath from drag n drop image. remove the curly brackets
         self.file_path = event.data
@@ -180,7 +145,54 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
 
     def test_function(self):
         print("test")
+        self.checkboxes_frame_outer.grid_forget()
+        #self.data_tree.grid_forget()
+        #self.x_scrollbar.grid_forget()
+        #self.yscrollbar.grid_forget()
+        i = 0
+        col_width = 120
+        check_height = 50
+        scaled_width = int(col_width * self.scaleFactor)
+        self.checkboxes_frame_outer = ctk.CTkFrame(self.train_frame_right, height =check_height, corner_radius=10, fg_color=MAIN_FRAME_COLOR,  border_width=0)
+        self.checkboxes_frame_outer.grid(row=1, column=0, columnspan =1, padx=5, pady=0, sticky='news')
 
+        # Add a Canvas to this frame
+        self.checkboxes_canvas = Canvas(self.checkboxes_frame_outer, height =check_height, bg=LABEL_COLOR, borderwidth=0, bd=0, relief='ridge', highlightthickness=0)
+        self.checkboxes_canvas.pack(side='left', fill='both', expand=True)
+
+        # Create a new frame for the checkboxes and add it to the Canvas
+        self.checkboxes_frame = ctk.CTkFrame(self.checkboxes_canvas, height =check_height, corner_radius=10, fg_color=LABEL_COLOR, border_width=0)
+
+        #adjusting 0,0 here might make it render quicker
+        self.checkboxes_canvas.create_window((0, 0), window=self.checkboxes_frame, anchor='sw')
+        for column in self.data_tree["columns"]:
+            check_var = BooleanVar()
+            num_chars = 10
+            short_col = column[:num_chars - 6]
+            self.check_vars.append(check_var)
+
+            self.check_ind_frame = ctk.CTkFrame(self.checkboxes_frame, height=check_height, width=col_width)
+            self.check_ind_frame.grid(row=0, column=i, padx=(0, 0), pady=0, ipadx=0, ipady=0, sticky="sew")
+            self.check_ind_frame.pack_propagate(False)
+            self.check_ind_frame.grid_propagate(False)
+            # font = ctkFont.Font(font=widget.cget("font"))
+            # char_width= font.measure("0");
+            check_button = ctk.CTkCheckBox(self.check_ind_frame, variable=check_var, command=self.on_check,
+                                           text=short_col, width=15, height=15, font=("Inter", 10))
+            # font = tkFont.Font(font=check_button.cget("font"))
+            # char_width = font.measure("0")
+            # check_button_width_pixels = char_width * num_chars
+
+            # code below to enable tooltips
+            CTkToolTip(check_button,
+                       message=column,
+                       delay=0.5, alpha=1, wraplength=200)
+
+            # check_button.grid(row=0, column=0, sticky="EW")
+            # check_button.grid(row=0, column=i,padx=(0,0), pady=0, sticky="")
+            # check_button.pack(side='bottom', padx=(5,0), expand=True, fill='both')
+            check_button.pack(side='bottom', padx=(5, 0), expand=True, fill='both')
+            check_button.pack_propagate(False)
 
     def file_open(self):
         if self.filename:
@@ -195,7 +207,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def load_data(self, df):
         #clear  old tree view
         self.clear_tree()
-        self.canvas_frame.grid_forget()
         check_height=50
         # Create a new frame for the checkboxes
         #self.checkboxes_frame_outer = ctk.CTkFrame(self.train_frame_right, height =check_height, corner_radius=10, fg_color=MAIN_FRAME_COLOR,  border_width=0)
@@ -215,17 +226,17 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         #set up new tree view
         self.data_tree["column"] = list(df.columns)
         #replace below with empty string to remove headings line
-        self.data_tree["show"] = ""
+        self.data_tree["show"] = "headings"
         #loop through column lists and add them to the tree view
         self.check_vars = []
         i=0
         col_width=120
-        scaled_width=int(col_width*self.scale_factor)
+        scaled_width=int(col_width*self.scaleFactor)
         for column in self.data_tree["columns"]:
 
             check_var = BooleanVar()
-            num_chars=15
-            short_col= column[:num_chars]
+            num_chars=10
+            short_col= column[:num_chars-6]
             self.check_vars.append(check_var)
 
             self.check_ind_frame = ctk.CTkFrame(self.checkboxes_frame, height=check_height, width=col_width)
@@ -291,8 +302,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.after_idle(lambda: self.x_scrollbar.set(0, 0))
         self.after_idle(lambda: self.data_tree.xview_moveto(0))
         self.after_idle(lambda: self.checkboxes_canvas.xview_moveto(0))
-
-        self.data_loaded = True
         # Update the scroll region of the Canvas
         #self.checkboxes_frame.update_idletasks()
         #self.checkboxes_canvas.configure(scrollregion=self.checkboxes_canvas.bbox('all'))
@@ -301,35 +310,22 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
 
     def on_resize(self, event):
         # Get the current scale factor
-        #print("resized")
-        self.get_scale_factor()
-        if self.scale_factor != self.orig_scale:
-            print("Scale Factor Changed")
-            self.orig_scale = self.scale_factor
+        #current_scale_x, current_scale_y = get_display_scale()
 
-            #The following code will work to reopen and rescale the file for a new monitor DPI, but it is quite slow moving between monitors
-            #current issue that the checkboxes stop scrolling fully
-            if self.data_loaded==True:
-                self.checkboxes_frame_outer.grid_forget()
-                self.data_tree.grid_forget()
-                self.x_scrollbar.grid_forget()
-                self.yscrollbar.grid_forget()
-                self.file_open()
+        # If the scale factor has changed, the window has been moved to a different monitor
+        #if current_scale_x != self.scale_x or current_scale_y != self.scale_y:
+        #    print("Window has been moved to a different monitor")
 
-        self.after_idle(self.update_image)
+           # Update the stored scale factor
+        #self.scale_x, self.scale_y = current_scale_x, current_scale_y
+        origScale=self.scaleFactor
+        self.scaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(2) / 100
+        #self.scaleFactor=1
 
+        print(self.scaleFactor)
 
-    def update_image(self):
-        self.canvas_width = self.canvas_frame.winfo_width()
-        self.canvas_height = self.canvas_frame.winfo_height()
-
-        self.image = self.original_image.resize((self.canvas_width, self.canvas_height))
-        self.photo = ImageTk.PhotoImage(image=self.image)
-        self.image_on_canvas = self.canvas.create_image(int(self.canvas_width / 2), int(self.canvas_height / 2),
-                                                        image=self.photo)
-
-    def get_scale_factor(self):
         winID = ctypes.windll.user32.GetForegroundWindow()
+        print("This is your current window ID: ", winID)
 
         MONITOR_DEFAULTTONULL = 0
         MONITOR_DEFAULTTOPRIMARY = 1
@@ -337,12 +333,34 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.MDT_EFFECTIVE_DPI=0
 
         monitorID = ctypes.windll.user32.MonitorFromWindow(winID, MONITOR_DEFAULTTONEAREST)
+        print("This is your active monitor ID: ", monitorID)
+        self.scaleFactor2 = ctypes.windll.shcore.GetScaleFactorForDevice(2) / 100
+        print(self.scaleFactor2)
+        MONITORENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(RECT),
+                                             ctypes.c_double)
+        # Enumerate all monitors
+        #ctypes.windll.user32.EnumDisplayMonitors(0, 0, MONITORENUMPROC(self.monitor_enum_proc), 0)
+        hMonitor=monitorID
+        #check if the monitor id has changed
         dpiX = ctypes.c_uint()
         dpiY = ctypes.c_uint()
-        ctypes.windll.shcore.GetDpiForMonitor(monitorID, self.MDT_EFFECTIVE_DPI, ctypes.byref(dpiX), ctypes.byref(dpiY))
+        ctypes.windll.shcore.GetDpiForMonitor(hMonitor, self.MDT_EFFECTIVE_DPI, ctypes.byref(dpiX), ctypes.byref(dpiY))
 
-        self.scale_factor  = dpiX.value / 96
-        #print("Current Scale Factor: ", self.scale_factor)
+        self.currentdpi  = dpiX.value / 96
+
+        print("Current DPI: ", self.currentdpi)
+
+
+        # Define callback function
+    def monitor_enum_proc(self, hMonitor, hdcMonitor, lprcMonitor, dwData):
+        # Get the DPI for the monitor
+        dpiX = ctypes.c_uint()
+        dpiY = ctypes.c_uint()
+        ctypes.windll.shcore.GetDpiForMonitor(hMonitor, self.MDT_EFFECTIVE_DPI, ctypes.byref(dpiX), ctypes.byref(dpiY))
+        scaleFactorX = dpiX.value / 96
+        scaleFactorY = dpiY.value / 96
+        print(f"Monitor ID: {hMonitor}, Scale Factor: {scaleFactorX}, {scaleFactorY}")
+        return 1  # Continue enumeration
 
     def clear_tree(self):
         self.data_tree.delete(*self.data_tree.get_children())
@@ -365,8 +383,18 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
 
 
 
+def get_display_scale():
+    screen_size = pyautogui.size()
+    monitor = get_monitors()[0]  # Get the first monitor
+
+    return screen_size[0] / monitor.width, screen_size[1] / monitor.height
 
 
+class RECT(ctypes.Structure):
+    _fields_ = [("left", ctypes.c_long),
+                ("top", ctypes.c_long),
+                ("right", ctypes.c_long),
+                ("bottom", ctypes.c_long)]
 
 
 
