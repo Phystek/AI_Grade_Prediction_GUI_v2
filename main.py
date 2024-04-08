@@ -238,6 +238,7 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.train_buttons_frame.rowconfigure(0, weight=1)
         self.train_buttons_frame.rowconfigure(1, weight=1)
         self.train_buttons_frame.rowconfigure(2, weight=1)
+        self.train_buttons_frame.rowconfigure(3, weight=1)
         self.train_buttons_frame.columnconfigure(0, weight=1)
         self.train_buttons_frame.columnconfigure(1, weight=1)
 
@@ -245,19 +246,23 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
                                        height=btn_height, width=80, command=self.train_model,
                                        font=("Inter", 14, "bold"))
         self.train_btn.grid(row=0, column=0, columnspan=2, padx=5, pady=10, sticky='SEW')
+        self.train_progress_bar = ctk.CTkProgressBar(master=self.train_buttons_frame, height=20)
+        self.train_progress_bar.set(0)
+        self.train_progress_bar.grid(row=1, column=0, columnspan=2, padx=5, pady=10, sticky='EW')
+
         self.load_model_btn = ctk.CTkButton(self.train_buttons_frame, text='Load Model', height=btn_height, width=80,command=self.load_model,
                                         font=("Inter", 14, "bold"))
-        self.load_model_btn.grid(row=1, column=1, columnspan=1, padx=5, pady=10, sticky='SEW')
+        self.load_model_btn.grid(row=2, column=1, columnspan=1, padx=5, pady=10, sticky='SEW')
         self.save_model_btn = ctk.CTkButton(self.train_buttons_frame, state="disabled", text='Save Model', command=self.save_model,
                                         height=btn_height, width=80,
                                         font=("Inter", 14, "bold"))
-        self.save_model_btn.grid(row=1, column=0, columnspan=1, padx=5, pady=10, sticky='SEW')
+        self.save_model_btn.grid(row=2, column=0, columnspan=1, padx=5, pady=10, sticky='SEW')
 
         # this will need to be made into a formatted string var so that it can show the training accuracy etc, alterntaively use multiple labels here (probably easier)
         self.training_label = ctk.CTkLabel(master=self.train_buttons_frame,
                                            text="Training Status: \nModel has not yet been trained", justify="left",
                                            font=("Inter", 10, "italic"))
-        self.training_label.grid(row=2, column=0, columnspan=2, padx=5, pady=10, sticky='SW')
+        self.training_label.grid(row=3, column=0, columnspan=2, padx=5, pady=10, sticky='SW')
 
         # add widgets to right frame
         # excel viewer widget
@@ -597,13 +602,22 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
 
     def save_model(self):
 
-        self.model.save('my_model.keras')
-        self.model.summary()
+        #save self.model using a filedialog so the user can pick the name and location
+        model_path = filedialog.asksaveasfilename(defaultextension=".keras",initialfile="Grade_Prediction_Model", filetypes=[("keras files", "*.keras")])
+        if model_path:
+            self.model.save(model_path)
+            print("Model saved")
+        #self.model.save('Grade_Prediction_model.keras')
+        #self.model.summary()
 
     def load_model(self):
-
-        self.model = tf.keras.models.load_model('my_model.keras')
-        self.model.summary()
+        #load a previously trained model using fialdialog.
+        model_path = filedialog.askopenfilename(defaultextension=".keras", filetypes=[("keras files", "*.keras")])
+        if model_path:
+            self.model = tf.keras.models.load_model(model_path)
+            print("Model loaded")
+        #self.model = tf.keras.models.load_model('my_model.keras')
+        #self.model.summary()
 
     def filter_data(self):
         # Create a copy of the column names

@@ -97,6 +97,9 @@ def build_model(self):
 
 def trial_run(self):
     #trial run to see if the model is working
+
+    #restart progress bar
+    self.train_progress_bar.set(0)
     # DP - should this use regular data set or normalised one? One is commented out in BPV code
     example_batch=self.train_dataset[:10]
     # example_batch=self.normed_train_data[:10]
@@ -108,12 +111,22 @@ def trial_run(self):
     history = self.model.fit(
         self.normed_train_data, self.train_labels,
         epochs=EPOCHS, validation_split=0.2, verbose=0,
-        callbacks=[PrintDot()])
+        callbacks=[PrintDot(self.train_progress_bar)])
     hist = pd.DataFrame(history.history)
     hist['epoch'] = history.epoch
     hist.tail()
 
 class PrintDot(keras.callbacks.Callback):
-  def on_epoch_end(self,epoch, logs):
-    if epoch % 100 ==0: print('')
-    print('.',end='')
+
+    def __init__(self, progress_bar):
+        super().__init__()
+        self.progress_bar = progress_bar
+    def on_epoch_end(self,epoch, logs):
+        if epoch % 100 ==0:
+            print('')
+        #if epoch % 10 == 0:
+        progress = epoch / 1000
+        self.progress_bar.set(progress)
+        self.progress_bar.update_idletasks()
+
+        print('.',end='')
