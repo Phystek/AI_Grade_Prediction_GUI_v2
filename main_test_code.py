@@ -8,7 +8,6 @@ from tkinter import font as tkFont
 import openpyxl
 from CTkToolTip import *
 from PIL import Image, ImageTk, ImageOps
-from CTkMessagebox import CTkMessagebox
 
 from marks_prediction_v10 import *
 
@@ -30,10 +29,10 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         # setup
         super().__init__()
         ctk.set_appearance_mode("dark")
-        w, h = 980, 540  # Width and height.
+        w, h = 900, 500  # Width and height.
         x, y = 200, 200  # Screen position.
         self.geometry('%dx%d+%d+%d' % (w, h, x, y))
-        self.minsize(980, 540)
+        self.minsize(900, 500)
         self.title('AI Grade Prediction')
         self.TkdndVersion = TkinterDnD._require(self)
 
@@ -51,12 +50,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.check_vars = []
         self.window_width = self.winfo_width()
         self.window_height = self.winfo_height()
-        self.model_btn_text = StringVar(value="Train Model")
-        self.training_status = StringVar(value="No files loaded")
-        self.prediction_status = StringVar(value="No files loaded")
-        self.matching_columns = False
-        self.filtering= False
-        self.show_prediction = False
 
         # main frame here, holds all of the other frames with their widgets
         frame_main = ctk.CTkFrame(master=self, corner_radius=10, fg_color=MAIN_FRAME_COLOR, bg_color=MAIN_FRAME_COLOR)
@@ -65,19 +58,12 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         # add prediction and training tabs to the main frame
         self.main_tabs = ctk.CTkTabview(master=frame_main, corner_radius=10, fg_color=LABEL_COLOR,
                                         bg_color=MAIN_FRAME_COLOR)
-
-
         self.main_tabs._segmented_button.grid(sticky="W")
 
         self.main_tabs.pack(padx=5, pady=(0, 5), ipadx=0, ipady=0, fill="both", expand=True, side="left")
         self.main_tabs.add("Train Model")
         self.main_tabs.add("Predict Grades")
-        self.main_tabs.configure(state='disabled')
         self.main_tabs._segmented_button.grid(sticky="W")
-
-
-
-
 
         # add frame to the training tab
         self.train_frame = ctk.CTkFrame(master=self.main_tabs.tab("Train Model"), corner_radius=10,
@@ -186,47 +172,25 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.predict_buttons_frame.rowconfigure(0, weight=1)
         self.predict_buttons_frame.rowconfigure(1, weight=1)
         self.predict_buttons_frame.rowconfigure(2, weight=1)
-        self.predict_buttons_frame.rowconfigure(3, weight=1)
         self.predict_buttons_frame.columnconfigure(0, weight=1)
         self.predict_buttons_frame.columnconfigure(1, weight=1)
 
         self.predict_btn = ctk.CTkButton(self.predict_buttons_frame, text='Predict Grades', state="disabled",
                                          height=btn_height, width=80, command=self.generate_prediction,
                                          font=("Inter", 14, "bold"))
-        CTkToolTip(self.predict_btn,
-                   message="Predict grades using the trained model and stored current gradebook data",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.predict_btn.grid(row=0, column=0, columnspan=2, padx=5, pady=10, sticky='SEW')
         self.save_predict = ctk.CTkButton(self.predict_buttons_frame, text='Save Prediction', state="disabled", height=btn_height,
                                           width=80,command=self.save_prediction,
                                           font=("Inter", 14, "bold"))
-        CTkToolTip(self.save_predict,
-                   message="Save the predicted grades to an excel file",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
 
         self.save_predict.grid(row=1, column=0, columnspan=2, padx=5, pady=10, sticky='SEW')
 
         # this will need to be made into a formatted string var so that it can show the training accuracy etc, alterntaively use multiple labels here (probably easier)
-
-
-        self.predict_stat_label = ctk.CTkLabel(master=self.predict_buttons_frame,
-                                           text="Prediction Status:",height=20, justify="left",
-                                           font=("Inter", 12, "bold"))
-        self.predict_stat_label.grid(row=2, column=0, columnspan=2, padx=5, pady=(5,2), sticky='W')
         self.predict_label = ctk.CTkLabel(master=self.predict_buttons_frame,
-                                           textvariable=self.prediction_status,height=20, justify="left",
-                                           font=("Inter", 12, "italic"))
-        self.predict_label.grid(row=3, column=0, columnspan=2, padx=5, pady=(2,10), sticky='W')
-        self.restart_button_pred = ctk.CTkButton(master=self.predict_buttons_frame, text='Restart App',
-                                                  command=self.restart_app, height=btn_height, width=80, font=("Inter", 12, "bold"), text_color='#8B0000')
-        CTkToolTip(self.restart_button_pred,
-                   message="Completely restart the application, clearing all stored data and models",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
-        self.restart_button_pred.grid(row=4, column=0, columnspan=2, padx=5, pady=(2, 10), sticky='EW')
-
+                                          text="Prediction Status: \nPrediction has not yet been generated",
+                                          justify="left",
+                                          font=("Inter", 10, "italic"))
+        self.predict_label.grid(row=2, column=0, columnspan=2, padx=5, pady=10, sticky='SW')
 
         # add widgets to left training frame
         self.import_file_btn = (
@@ -278,60 +242,31 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.train_buttons_frame.rowconfigure(1, weight=1)
         self.train_buttons_frame.rowconfigure(2, weight=1)
         self.train_buttons_frame.rowconfigure(3, weight=1)
-        self.train_buttons_frame.rowconfigure(4, weight=1)
-        self.train_buttons_frame.rowconfigure(5, weight=1)
         self.train_buttons_frame.columnconfigure(0, weight=1)
         self.train_buttons_frame.columnconfigure(1, weight=1)
 
-        self.train_btn = ctk.CTkButton(self.train_buttons_frame, textvariable=self.model_btn_text, state="disabled",
+        self.train_btn = ctk.CTkButton(self.train_buttons_frame, text='Train Model', state="disabled",
                                        height=btn_height, width=80, command=self.train_model,
                                        font=("Inter", 14, "bold"))
-        CTkToolTip(self.train_btn,
-                   message="Train the grade prediction model using the stored data (at least one stored file required)",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.train_btn.grid(row=0, column=0, columnspan=2, padx=5, pady=10, sticky='SEW')
         self.train_progress_bar = ctk.CTkProgressBar(master=self.train_buttons_frame, height=20)
-        CTkToolTip(self.train_progress_bar,
-                   message="Model training progress bar",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.train_progress_bar.set(0)
         self.train_progress_bar.grid(row=1, column=0, columnspan=2, padx=5, pady=10, sticky='EW')
 
         self.load_model_btn = ctk.CTkButton(self.train_buttons_frame, text='Load Model', height=btn_height, width=80,command=self.load_model,
                                         font=("Inter", 14, "bold"))
-        CTkToolTip(self.load_model_btn,
-                   message="Load a previously trained and saved .keras model file",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
-        #self.load_model_btn = ctk.CTkButton(self.train_buttons_frame, text='Load Model', height=btn_height, width=80,
-                                           # command=self.restart_app,font=("Inter", 14, "bold"))
         self.load_model_btn.grid(row=2, column=1, columnspan=1, padx=5, pady=10, sticky='SEW')
         self.save_model_btn = ctk.CTkButton(self.train_buttons_frame, state="disabled", text='Save Model', command=self.save_model,
                                         height=btn_height, width=80,
                                         font=("Inter", 14, "bold"))
-        CTkToolTip(self.save_model_btn,
-                   message="Save the trained model file (.keras)",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.save_model_btn.grid(row=2, column=0, columnspan=1, padx=5, pady=10, sticky='SEW')
 
         # this will need to be made into a formatted string var so that it can show the training accuracy etc, alterntaively use multiple labels here (probably easier)
-        self.training_stat_label = ctk.CTkLabel(master=self.train_buttons_frame,
-                                           text="Training Status:",height=20, justify="left",
-                                           font=("Inter", 12, "bold"))
-        self.training_stat_label.grid(row=3, column=0, columnspan=2, padx=5, pady=(5,2), sticky='W')
         self.training_label = ctk.CTkLabel(master=self.train_buttons_frame,
-                                           textvariable=self.training_status,height=20, justify="left",
-                                           font=("Inter", 12, "italic"))
-        self.training_label.grid(row=4, column=0, columnspan=2, padx=5, pady=(2,10), sticky='W')
-        self.restart_button_train = ctk.CTkButton(self.train_buttons_frame, text='Restart App',command = self.restart_app, height=btn_height, width=80, font=("Inter", 14, "bold"), text_color='#8B0000')
-        CTkToolTip(self.restart_button_train,
-                   message="Completely restart the application, clearing all stored data and models",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
-        self.restart_button_train.grid(row=5, column=0, columnspan=2, padx=5, pady=(2, 10), sticky='EW')
+                                           text="Training Status: \nModel has not yet been trained", justify="left",
+                                           font=("Inter", 10, "italic"))
+        self.training_label.grid(row=3, column=0, columnspan=2, padx=5, pady=10, sticky='SW')
+
         # add widgets to right frame
         # excel viewer widget
         self.right_buttons_frame = ctk.CTkFrame(master=self.train_frame_right, height=60, width=300, corner_radius=10,
@@ -348,35 +283,22 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
             ctk.CTkButton(self.right_buttons_frame, text='Filter', height=btn_height, state="disabled", width=80,
                           command=self.filter_data,
                           font=("Inter", 14, "bold")))
-        CTkToolTip(self.filter_btn,message="Remove any unchecked columns from the data",delay=0.5, alpha=1, wraplength=200)
         self.filter_btn.grid(row=0, column=0, columnspan=1, padx=10, pady=10, sticky='NEW')
         self.zeros_btn = (
             ctk.CTkButton(self.right_buttons_frame, text='Remove Zeros', state="disabled", height=btn_height,
                           command=self.remove_zeros, width=80,
                           font=("Inter", 14, "bold")))
-        CTkToolTip(self.zeros_btn,
-                   message="Remove any rows of data that have >80% zeros (e.g. outlier students who unenrolled)",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.zeros_btn.grid(row=0, column=1, columnspan=1, padx=10, pady=10, sticky='NEW')
         self.reset_btn = (
             ctk.CTkButton(self.right_buttons_frame, text='Reset', state="disabled", height=btn_height, width=80,
                           command=self.reset_data,
                           font=("Inter", 14, "bold")))
-        CTkToolTip(self.reset_btn,
-                   message="Undo any changes made to the data (e.g. columns removed, zeros removed, or data filtered)",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.reset_btn.grid(row=0, column=2, columnspan=1, padx=10, pady=10, sticky='NEW')
 
         self.store_btn = (
             ctk.CTkButton(self.right_buttons_frame, text='Store Data', state="disabled", height=btn_height, width=80,
                           command=self.store_data,
                           font=("Inter", 14, "bold")))
-        CTkToolTip(self.store_btn,
-                   message="Store the checked data columns for use in training the model",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.store_btn.grid(row=0, column=3, columnspan=1, padx=10, pady=10, sticky='NEW')
 
         self.dynamic_right_frame = ctk.CTkFrame(master=self.train_frame_right, corner_radius=10, fg_color=LABEL_COLOR)
@@ -396,7 +318,7 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.canvas.pack(expand=True, fill="both")
         # place dnd image on the canvas
         ##################
-        self.image = Image.open("images/Gradebook_image1.png")
+        self.image = Image.open("images/Gradebook_image1_50.png")
 
 
         self.original_image = self.image
@@ -428,34 +350,22 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
             ctk.CTkButton(self.right_buttons_frame_p, text='Filter', height=btn_height, state="disabled", width=80,
                           command=self.filter_data_p,
                           font=("Inter", 14, "bold")))
-        CTkToolTip(self.filter_btn_p, message="Remove any unchecked columns from the data", delay=0.5, alpha=1,
-                   wraplength=200)
         self.filter_btn_p.grid(row=0, column=0, columnspan=1, padx=10, pady=10, sticky='NEW')
         self.zeros_btn_p = (
             ctk.CTkButton(self.right_buttons_frame_p, text='Remove Zeros', state="disabled", height=btn_height,
                           command=self.remove_zeros_p, width=80,
                           font=("Inter", 14, "bold")))
-        CTkToolTip(self.zeros_btn_p, message="Remove any rows of data that have >80% zeros (e.g. outlier students who unenrolled)", delay=0.5, alpha=1,
-                   wraplength=200)
         self.zeros_btn_p.grid(row=0, column=1, columnspan=1, padx=10, pady=10, sticky='NEW')
         self.reset_btn_p = (
             ctk.CTkButton(self.right_buttons_frame_p, text='Reset', state="disabled", height=btn_height, width=80,
                           command=self.reset_data_p,
                           font=("Inter", 14, "bold")))
-        CTkToolTip(self.reset_btn_p,
-                   message="Undo any changes made to the data (e.g. columns removed, zeros removed, or data filtered)",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.reset_btn_p.grid(row=0, column=2, columnspan=1, padx=10, pady=10, sticky='NEW')
 
         self.store_btn_p = (
             ctk.CTkButton(self.right_buttons_frame_p, text='Store Data', state="disabled", height=btn_height, width=80,
                           command=self.store_data_p,
                           font=("Inter", 14, "bold")))
-        CTkToolTip(self.store_btn_p,
-                   message="Store the checked data columns for use in generating the predicted grades",
-                   delay=0.5, alpha=1,
-                   wraplength=200)
         self.store_btn_p.grid(row=0, column=3, columnspan=1, padx=10, pady=10, sticky='NEW')
 
         self.dynamic_right_frame_p = ctk.CTkFrame(master=self.predict_frame_right, corner_radius=10,
@@ -477,7 +387,7 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.canvas_p.pack(expand=True, fill="both")
         # place dnd image on the canvas
         ###################
-        self.image_p = Image.open("images/Gradebook_image_current_lo.png")
+        self.image_p = Image.open("images/Gradebook_image_current_lo_50.png")
         self.original_image_p = self.image_p
         self.after_idle(self.update_canvas)
         ##################
@@ -508,21 +418,9 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         prep_predict_data(self)
         predict_grades(self)
         self.save_predict.configure(state="normal")
-        self.show_prediction=True
-        self.df_p= self.df_Pred
-        self.load_data()
-        self.show_prediction=False
-        self.update_idletasks()
-        self.disable_data_buttons_p()
-        self.prediction_status.set("Predicted grades shown, ready to be saved")
 
     def save_prediction(self):
-        #save_prediction_func(self)
-        predict_path = filedialog.asksaveasfilename(defaultextension=".xlsx",initialfile="Grade_Predictions", filetypes=[("Excel Files", "*.xlsx")])
-        if predict_path:
-
-            self.df_Pred.to_excel(predict_path)
-            print("Predictions saved")
+        save_prediction_func(self)
 
     def file_dialog(self):
         # get path after an import button has been clicked ( no curly brackets with this method)
@@ -550,26 +448,13 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
 
     def store_data(self):
         # get path after an import button has been clicked ( no curly brackets with this method)
-        self.filter_data()
         self.no_of_datafiles = self.no_of_datafiles + 1
         self.string_no_of_datafiles = str(self.no_of_datafiles)
         self.no_of_datafiles_SV.set(self.string_no_of_datafiles)
-        self.update_idletasks()
         self.disable_data_buttons()
 
-
         if self.no_of_datafiles == 1:
-            #only store the data that has a ticked checkbox associated with it.
-            columns = list(self.df.columns)
-            self.df_select = self.df
-            # Iterate over the check_vars list and the column names together
-            for check_var, column in zip(self.check_vars, columns):
-                # If the checkbox is unchecked
-                if not check_var.get():
-                    # Drop the column from the DataFrame
-                    self.df_select = self.df.drop(column, axis=1)
-            self.stored_data_1 = self.df_select
-            self.joined_stored_data = self.stored_data_1
+            self.stored_data_1 = self.df
             self.check_store_1.set(True)
             self.file_1_name.set(self.filename)
             self.file_1_string = self.file_1_name.get()
@@ -592,8 +477,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         elif self.no_of_datafiles == 2:
             self.stored_data_2 = self.df
             self.check_store_2.set(True)
-            self.joined_stored_data = pd.concat([self.joined_stored_data, self.stored_data_2], axis=0)
-
             self.file_2_name.set(self.filename)
             self.check_file_2.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky='NW')
             self.file_2_string = self.file_2_name.get()
@@ -614,7 +497,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         elif self.no_of_datafiles == 3:
             self.stored_data_3 = self.df
             self.check_store_3.set(True)
-            self.joined_stored_data = pd.concat([self.joined_stored_data, self.stored_data_3], axis=0)
             self.file_3_name.set(self.filename)
             self.check_file_3.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky='NW')
             self.file_3_string = self.file_3_name.get()
@@ -635,7 +517,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         else:
             print("Max number of datafiles reached")
         print("data stored")
-        self.training_status.set("At least one file stored. Ready to train model")
 
     def store_data_p(self):
         # get path after an import button has been clicked ( no curly brackets with this method)
@@ -644,19 +525,8 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.string_no_of_datafiles_p = str(self.no_of_datafiles_p)
         self.no_of_datafiles_SV_p.set(self.string_no_of_datafiles_p)
         self.disable_data_buttons_p()
-        self.prediction_status.set("Current gradebook data stored - Ready to predict")
 
         if self.no_of_datafiles_p == 1:
-            #only store the data that has a ticked checkbox associated with it
-
-            columns = list(self.df_p.columns)
-            self.df_p_select = self.df_p
-            # Iterate over the check_vars list and the column names together
-            for check_var_p, column in zip(self.check_vars_p, columns):
-                # If the checkbox is unchecked
-                if not check_var_p.get():
-                    # Drop the column from the DataFrame
-                    self.df_p_select = self.df_p.drop(column, axis=1)
             self.stored_data_1_p = self.df_p
             self.check_store_1_p.set(True)
             self.file_1_name_p.set(self.filename_p)
@@ -706,8 +576,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def get_path(self, event):
         # Get the filepath from drag n drop image. remove the curly brackets
         self.file_path = event.data
-
-
         if self.file_path[0] == '{' and self.file_path[-1] == '}':
             self.file_path = self.file_path[1:-1]
         self.filename = self.file_path.split("/")[-1]
@@ -727,25 +595,14 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         print("test")
 
     def train_model(self):
-        self.model_btn_text.set("Training Model.")
-        #self.update_status_t = self.after(20, self.update_image)  # 500 ms delay
-        self.update_idletasks()
-        self.training_status.set("Training")
-        self.update_idletasks()
-        self.after(20, prep_training_data(self))
-        self.model_btn_text.set("Training Model..")
+
+        prep_training_data(self)
 
         build_model(self)
-        self.model_btn_text.set("Training Model...")
-
         trial_run(self)
 
 
         self.save_model_btn.configure(state="normal")
-        self.model_btn_text.set("Train Model")
-        self.training_status.set("Model is trained - Go to predict tab")
-        self.main_tabs.configure(state='normal')
-
         #self.dynamic_right_frame.grid_remove()
         #self.dynamic_right_frame.grid()
 
@@ -768,8 +625,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         if model_path:
             self.model = tf.keras.models.load_model(model_path)
             print("Model loaded")
-            self.training_status.set("Model file loaded - Go to predict tab")
-            self.main_tabs.configure(state='normal')
         #self.model = tf.keras.models.load_model('my_model.keras')
         #self.model.summary()
 
@@ -785,10 +640,7 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 self.df = self.df.drop(column, axis=1)
 
         # After filtering, you might want to reload the data
-        self.filtering= True
-
         self.load_data()
-        self.filtering = False
 
     def filter_data_p(self):
         # Create a copy of the column names
@@ -847,15 +699,12 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
             if self.main_tabs.get() == "Train Model":
                 self.df = pd.read_excel(self.file_path)
                 self.orig_df = self.df
-                self.training_status.set("Gradebook file opened - Adjust data and then store")
 
             else:
                 self.df_p = pd.read_excel(self.file_path_p)
                 self.orig_df_p = self.df_p
-                self.prediction_status.set("Gradebook file opened - Adjust data and then store")
 
             print("file opened")
-
             self.load_data()
 
         except ValueError:
@@ -868,166 +717,108 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def load_data(self):
 
         check_height = 50
-        columns_to_drop = ['ID number', 'Email address', 'Groups', 'Last downloaded from this unit']
+
         # place dnd image on the canvas
         if self.main_tabs.get() == "Train Model":
-            #self.image = Image.open("images/Loading.png")
-            #self.original_image = self.image
-            #self.canvas.delete(self.image_on_canvas)
-            #self.update_canvas()
-            for column in columns_to_drop:
-                if column in self.df.columns:
-                    self.df = self.df.drop(columns=column)
-            #self.canvas.pack(expand=True, fill="both")
+            self.image = Image.open("images/Loading.png")
+            self.original_image = self.image
+            self.canvas.delete(self.image_on_canvas)
+            self.update_canvas()
+
+            self.canvas.pack(expand=True, fill="both")
             # Create a new frame for the checkboxes
-            self.df = self.df.replace('-', 0)
+            self.checkboxes_frame_outer = ctk.CTkFrame(self.dynamic_right_frame, height=check_height, corner_radius=10,
+                                                       fg_color=MAIN_FRAME_COLOR, border_width=0)
 
-            #Before proceeding, now check if the column headers match if we're on the second or third file import.
-            if self.no_of_datafiles == 0:
-                self.matching_columns = True
-                #save the original columns data so that later files can be checked for matching
-                #only execute this if not filtering.
-                if self.filtering == False:
-                    self.orig_columns = self.df.columns
-            elif self.no_of_datafiles == 1 and self.filtering == False:
-                if not self.orig_columns.equals(self.df.columns):
-                    print("Column headers do not match")
-                    self.matching_columns=False
-                    msg = CTkMessagebox(title="Warning Message!", message="Column headers do not match the stored file. Please edit your gradebook file to match and try again",
-                                        icon="warning", option_1="Okay")
+            self.checkboxes_frame_outer.grid(row=0, column=0, columnspan=1, padx=5, pady=0, sticky='news')
 
+            # Add a Canvas to this frame
+            self.checkboxes_canvas = Canvas(self.checkboxes_frame_outer, height=check_height, bg=LABEL_COLOR,
+                                            borderwidth=0, bd=0, relief='ridge', highlightthickness=0)
+            self.checkboxes_canvas.pack(side='left', fill='both', expand=True)
 
-                else:
-                    self.matching_columns=True
-            elif self.no_of_datafiles == 2 and self.filtering == False:
-                if not self.orig_columns.equals(self.df.columns):
-                    print("Column headers do not match")
-                    self.matching_columns=False
-                    msg = CTkMessagebox(title="Warning Message!", message="Column headers do not match the stored file. Please edit your gradebook file to match and try again",
-                                        icon="warning", option_1="Okay")
-                else:
-                    self.matching_columns=True
+            # Create a new frame for the checkboxes and add it to the Canvas
+            self.checkboxes_frame = ctk.CTkFrame(self.checkboxes_canvas, height=check_height, corner_radius=10,
+                                                 fg_color=LABEL_COLOR, border_width=0)
 
+            # adjusting 0,0 here might make it render quicker
+            self.checkboxes_canvas.create_window((0, 0), window=self.checkboxes_frame, anchor='sw')
+            self.clear_tree()
+            # set up new tree view
+            self.data_tree["column"] = list(self.df.columns)
+            # replace below with empty string to remove headings line
+            self.data_tree["show"] = ""
+            # loop through column lists and add them to the tree view
+            self.check_vars = []
+            i = 0
+            col_width = 120
+            scaled_width = int(col_width * self.scale_factor)
+            for column in self.data_tree["columns"]:
+                check_var = BooleanVar()
+                num_chars = 15
+                short_col = column[:num_chars]
+                self.check_vars.append(check_var)
+                self.check_ind_frame = ctk.CTkFrame(self.checkboxes_frame, height=check_height, width=col_width)
+                self.check_ind_frame.pack_propagate(False)
+                self.check_ind_frame.grid_propagate(False)
+                self.check_ind_frame.grid(row=0, column=i, padx=(0, 0), pady=0, ipadx=0, ipady=0, sticky="sew")
+                check_button = ctk.CTkCheckBox(self.check_ind_frame, variable=check_var, command=self.on_check,
+                                               text=short_col, width=15, height=15, font=("Inter", 10))
 
-            if self.matching_columns:
-                #edit incoming columns to match that of the stored data -currently works for unchecked checkboxes, but not working well for if they've actually filtered the data
-                #
-                if self.no_of_datafiles > 0:
-                    #replace this code for drip any data in df.columns that is not in the stored data columns
-                    self.df = self.df[self.stored_data_1.columns]
-                    #columns = list(self.df.columns)
-                    #for check_var, column in zip(self.check_vars, columns):
-                        # If the checkbox is unchecked
-                    #    if not check_var.get():
-                            # Drop the column from the DataFrame
-                    #        self.df = self.df.drop(column, axis=1)
+                # code below to enable tooltips
+                CTkToolTip(check_button,
+                           message=column,
+                           delay=0.5, alpha=1, wraplength=200)
 
-                self.checkboxes_frame_outer = ctk.CTkFrame(self.dynamic_right_frame, height=check_height, corner_radius=10,
-                                                           fg_color=MAIN_FRAME_COLOR, border_width=0)
+                check_button.pack(side='bottom', padx=(5, 0), expand=True, fill='both')
+                check_button.pack_propagate(False)
+                self.data_tree.column(column, stretch=False, width=scaled_width)
+                self.data_tree.heading(column, command=lambda: "break", text=column)
+                self.data_tree.bind('<Button-1>', self.do_nothing)
+                i = i + 1
 
-                self.checkboxes_frame_outer.grid(row=0, column=0, columnspan=1, padx=5, pady=0, sticky='news')
+            # put the data in the treeview
+            df_rows = self.df.to_numpy().tolist()
+            for row in df_rows:
+                self.data_tree.insert("", "end", values=row)
 
-                # Add a Canvas to this frame
-                self.checkboxes_canvas = Canvas(self.checkboxes_frame_outer, height=check_height, bg=LABEL_COLOR,
-                                                borderwidth=0, bd=0, relief='ridge', highlightthickness=0)
-                self.checkboxes_canvas.pack(side='left', fill='both', expand=True)
+            self.update_idletasks()
+            self.data_tree.grid(row=1, column=0, columnspan=1, padx=5, pady=5, ipadx=0, ipady=0, sticky='NEWS')
+            self.data_tree.grid_propagate(False)
+            # Add these lines where you create your Treeview widget
+            self.yscrollbar = ctk.CTkScrollbar(self.dynamic_right_frame, command=self.data_tree.yview)
+            self.data_tree.configure(yscrollcommand=self.yscrollbar.set)
 
-                # Create a new frame for the checkboxes and add it to the Canvas
-                self.checkboxes_frame = ctk.CTkFrame(self.checkboxes_canvas, height=check_height, corner_radius=10,
-                                                     fg_color=LABEL_COLOR, border_width=0)
+            # Place the scrollbar next to the Treeview
+            self.yscrollbar.grid(row=1, column=1, sticky='ns')
 
-                # adjusting 0,0 here might make it render quicker
-                self.checkboxes_canvas.create_window((0, 0), window=self.checkboxes_frame, anchor='sw')
-                self.clear_tree()
-                # set up new tree view
-                self.data_tree["column"] = list(self.df.columns)
-                # replace below with empty string to remove headings line
-                self.data_tree["show"] = ""
-                # loop through column lists and add them to the tree view
-                self.check_vars = []
-                i = 0
-                col_width = 120
-                scaled_width = int(col_width * self.scale_factor)
-                for column in self.data_tree["columns"]:
-                    check_var = BooleanVar()
-                    num_chars = 15
-                    short_col = column[:num_chars]
-                    self.check_vars.append(check_var)
-                    self.check_ind_frame = ctk.CTkFrame(self.checkboxes_frame, height=check_height, width=col_width)
-                    self.check_ind_frame.pack_propagate(False)
-                    self.check_ind_frame.grid_propagate(False)
-                    self.check_ind_frame.grid(row=0, column=i, padx=(0, 0), pady=0, ipadx=0, ipady=0, sticky="sew")
-                    check_button = ctk.CTkCheckBox(self.check_ind_frame, variable=check_var, command=self.on_check,
-                                                   text=short_col, width=15, height=15, font=("Inter", 10))
-                    check_button.toggle()
-                    if self.no_of_datafiles == 0:
-                        check_button.configure(state='normal')
-                    else:
-                        check_button.configure(state='disabled')
+            self.x_scrollbar = ctk.CTkScrollbar(self.dynamic_right_frame, command=self.multi_scroll,
+                                                orientation="horizontal")
 
+            self.x_scrollbar.grid(row=2, column=0, sticky='ew')
+            self.data_tree.configure(xscrollcommand=self.x_scrollbar.set)
+            self.checkboxes_canvas.configure(xscrollcommand=self.x_scrollbar.set)
 
+            # Update the scroll region of the Canvas
+            self.checkboxes_canvas.configure(scrollregion=self.checkboxes_canvas.bbox('all'))
 
+            self.after_idle(lambda: self.x_scrollbar.set(0, 0))
+            self.after_idle(lambda: self.data_tree.xview_moveto(0))
+            self.after_idle(lambda: self.checkboxes_canvas.xview_moveto(0))
 
-
-
-                    # code below to enable tooltips
-                    CTkToolTip(check_button,
-                               message=column,
-                               delay=0.5, alpha=1, wraplength=200)
-
-                    check_button.pack(side='bottom', padx=(5, 0), expand=True, fill='both')
-                    check_button.pack_propagate(False)
-                    self.data_tree.column(column, stretch=False, width=scaled_width)
-                    self.data_tree.heading(column, command=lambda: "break", text=column)
-                    self.data_tree.bind('<Button-1>', self.do_nothing)
-                    i = i + 1
-
-                # put the data in the treeview
-                df_rows = self.df.to_numpy().tolist()
-                for row in df_rows:
-                    self.data_tree.insert("", "end", values=row)
-
-                self.update_idletasks()
-                self.data_tree.grid(row=1, column=0, columnspan=1, padx=5, pady=5, ipadx=0, ipady=0, sticky='NEWS')
-                self.data_tree.grid_propagate(False)
-                # Add these lines where you create your Treeview widget
-                self.yscrollbar = ctk.CTkScrollbar(self.dynamic_right_frame, command=self.data_tree.yview)
-                self.data_tree.configure(yscrollcommand=self.yscrollbar.set)
-
-                # Place the scrollbar next to the Treeview
-                self.yscrollbar.grid(row=1, column=1, sticky='ns')
-
-                self.x_scrollbar = ctk.CTkScrollbar(self.dynamic_right_frame, command=self.multi_scroll,
-                                                    orientation="horizontal")
-
-                self.x_scrollbar.grid(row=2, column=0, sticky='ew')
-                self.data_tree.configure(xscrollcommand=self.x_scrollbar.set)
-                self.checkboxes_canvas.configure(xscrollcommand=self.x_scrollbar.set)
-
-                # Update the scroll region of the Canvas
-                self.checkboxes_canvas.configure(scrollregion=self.checkboxes_canvas.bbox('all'))
-
-                self.after_idle(lambda: self.x_scrollbar.set(0, 0))
-                self.after_idle(lambda: self.data_tree.xview_moveto(0))
-                self.after_idle(lambda: self.checkboxes_canvas.xview_moveto(0))
-
-                self.data_loaded = True
-                self.update_idletasks()
-                self.after_idle(lambda: self.enable_data_buttons())
-                self.canvas_frame.grid_forget()
-                self.after_idle(lambda: self.dynamic_right_frame.grid(row=1, column=0, padx=5, pady=5, sticky='NEWS'))
+            self.data_loaded = True
+            self.update_idletasks()
+            self.after_idle(lambda: self.enable_data_buttons())
+            self.canvas_frame.grid_forget()
+            self.after_idle(lambda: self.dynamic_right_frame.grid(row=1, column=0, padx=5, pady=5, sticky='NEWS'))
         else:
-            #self.image_p = Image.open("images/Loading.png")
-            #self.original_image_p = self.image_p
-            #self.canvas_p.delete(self.image_on_canvas_p)
-            #self.update_canvas()
+            self.image_p = Image.open("images/Loading.png")
+            self.original_image_p = self.image_p
+            self.canvas_p.delete(self.image_on_canvas_p)
+            self.update_canvas()
 
-            #self.canvas_p.pack(expand=True, fill="both")
+            self.canvas_p.pack(expand=True, fill="both")
             # Create a new frame for the checkboxes
-            for column in columns_to_drop:
-                if column in self.df_p.columns:
-                    self.df_p = self.df_p.drop(columns=column)
-            self.df_p = self.df_p.replace('-', 0)
             # self.checkboxes_frame_outer = ctk.CTkFrame(self.train_frame_right, height =check_height, corner_radius=10, fg_color=MAIN_FRAME_COLOR,  border_width=0)
             self.checkboxes_frame_outer_p = ctk.CTkFrame(self.dynamic_right_frame_p, height=check_height,
                                                          corner_radius=10,
@@ -1068,11 +859,7 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 self.check_ind_frame_p.grid(row=0, column=i_p, padx=(0, 0), pady=0, ipadx=0, ipady=0, sticky="sew")
                 check_button_p = ctk.CTkCheckBox(self.check_ind_frame_p, variable=check_var_p, command=self.on_check_p,
                                                  text=short_col, width=15, height=15, font=("Inter", 10))
-                check_button_p.toggle()
-                if self.show_prediction == False:
-                    check_button_p.configure(state='normal')
-                else:
-                    check_button_p.configure(state='disabled')
+
                 # code below to enable tooltips
                 CTkToolTip(check_button_p,
                            message=column,
@@ -1144,7 +931,7 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 self.after_cancel(self.update_id)
 
             # Schedule update_image to be called after a delay
-            self.update_id = self.after(20, self.update_image)  # 500 ms delay
+            self.update_id = self.after(10, self.update_image)  # 500 ms delay
 
             # Call update_image
             #if not self.updating_image:
@@ -1162,8 +949,6 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.x_scrollbar_p.grid_forget()
         self.yscrollbar_p.grid_forget()
 
-
-
     def update_image(self):
         self.updating_image = True
         print("image updated")
@@ -1171,12 +956,20 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
             self.canvas_width = self.canvas_frame.winfo_width()
             self.canvas_height = self.canvas_frame.winfo_height()
 
+            # Create an off-screen canvas (buffer) with the original image size
+            buffer = Image.new('RGB', self.original_image.size)
 
+            # Paste the original image onto the buffer
+            buffer.paste(self.original_image, (0, 0))
+
+            # Resize the buffer to the canvas size
+            buffer = buffer.resize((self.canvas_width, self.canvas_height))
+
+            # Create a PhotoImage from the buffer
+            self.photo = ImageTk.PhotoImage(image=buffer)
 
             if hasattr(self, 'image_on_canvas'):
-                self.canvas.coords(self.image_on_canvas, int(self.canvas_width / 2), int(self.canvas_height / 2))
-                self.image = self.original_image.resize((self.canvas_width, self.canvas_height))
-                self.photo = ImageTk.PhotoImage(image=self.image)
+                # Update the on-screen canvas with the buffer
                 self.canvas.itemconfig(self.image_on_canvas, image=self.photo)
             else:
                 self.image_on_canvas = self.canvas.create_image(int(self.canvas_width / 2), int(self.canvas_height / 2),
@@ -1186,18 +979,25 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
             self.canvas_width_p = self.canvas_frame_p.winfo_width()
             self.canvas_height_p = self.canvas_frame_p.winfo_height()
 
-            self.image_p = self.original_image_p.resize((self.canvas_width_p, self.canvas_height_p))
-            self.photo_p = ImageTk.PhotoImage(image=self.image_p)
+            # Create an off-screen canvas (buffer) with the original image size
+            buffer_p = Image.new('RGB', self.original_image_p.size)
+
+            # Paste the original image onto the buffer
+            buffer_p.paste(self.original_image_p, (0, 0))
+
+            # Resize the buffer to the canvas size
+            buffer_p = buffer_p.resize((self.canvas_width_p, self.canvas_height_p))
+
+            # Create a PhotoImage from the buffer
+            self.photo_p = ImageTk.PhotoImage(image=buffer_p)
 
             if hasattr(self, 'image_on_canvas_p'):
-                self.canvas_p.coords(self.image_on_canvas_p, int(self.canvas_width_p / 2),
-                                     int(self.canvas_height_p / 2))
+                # Update the on-screen canvas with the buffer
                 self.canvas_p.itemconfig(self.image_on_canvas_p, image=self.photo_p)
             else:
                 self.image_on_canvas_p = self.canvas_p.create_image(int(self.canvas_width_p / 2),
                                                                     int(self.canvas_height_p / 2),
                                                                     image=self.photo_p)
-
         self.updating_image = False
 
     def get_scale_factor(self):
@@ -1264,22 +1064,14 @@ class MainApp(ctk.CTk, TkinterDnD.DnDWrapper):
         # This function will be called when a checkbox is clicked
         # You can add your own logic here
         for i, check_var in enumerate(self.check_vars):
-            #print(f"Checkbox {i} is {'checked' if check_var.get() else 'not checked'}")
-            return
+            print(f"Checkbox {i} is {'checked' if check_var.get() else 'not checked'}")
 
     def on_check_p(self):
         # This function will be called when a checkbox is clicked
         # You can add your own logic here
         for i_p, check_var_p in enumerate(self.check_vars_p):
-            #print(f"Checkbox {i_p} is {'checked' if check_var_p.get() else 'not checked'}")
-            return
-    def restart_app(self):
-        # Destroy the current instance
-        self.destroy()
+            print(f"Checkbox {i_p} is {'checked' if check_var_p.get() else 'not checked'}")
 
-        # Create a new instance
-        new_app = MainApp()
-        new_app.mainloop()
 
 if __name__ == '__main__':
     app = MainApp()

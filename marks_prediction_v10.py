@@ -16,18 +16,22 @@ def norm(x):
 
 def prep_training_data(self):
     # DP - create training data set (using just the first file for now, others to be added via concat later)
-    self.raw_dataset = self.stored_data_1
+    self.raw_dataset = self.joined_stored_data
     self.dataset = self.raw_dataset.copy()  # make a copy to not tamper with original data
 
     #get rid of first name and surname column
     # DP - might need to check if they exist first, or just don't show them to user in the first place?
     # DP - may want to put this in a try statement, also the gradebook files have 'last name' but binesh code had 'surname'
-    to_drop = ['First name', 'Last name']
-    self.dataset = self.dataset.drop(to_drop, axis=1)  # drop the items that are not assessed yet
-
+    to_drop = ['First name', 'Last name', 'Surname']
+    #self.dataset = self.dataset.drop(to_drop, axis=1)  # drop the items that are not assessed yet
+   #to_drop = ['First name', 'Last name']
+    self.dataset = self.dataset.drop(columns=[col for col in to_drop if col in self.dataset.columns])
     # DP - is this split for testing needed in the final code?
-    self.train_dataset = self.dataset.sample(frac=0.8, random_state=0)  # split into 80% training and 20% testing
+    #DP - comments below to use full data set for training or just 80% of it
+    #self.train_dataset = self.dataset.sample(frac=0.8, random_state=0)  # split into 80% training and 20% testing
+    self.train_dataset = self.dataset
     self.test_dataset = self.dataset.drop(self.train_dataset.index)
+
 
     self.train_labels = self.train_dataset.pop('Unit total')
     self.test_labels = self.test_dataset.pop('Unit total')
@@ -41,33 +45,40 @@ def prep_predict_data(self):
     #replaced binesh's raw_dataset_2022 with self.raw_predict_dataset
     self.raw_predict_dataset = self.stored_data_1_p
     self.predict_dataset = self.raw_predict_dataset.copy()
-    to_drop = ['First name', 'Last name', 'Unit total']
-    self.predict_dataset = self.predict_dataset.drop(to_drop, axis=1)
+    to_drop = ['First name', 'Last name', 'Surname', 'Unit total']
+    #self.predict_dataset = self.predict_dataset.drop(to_drop, axis=1)
+    #to_drop = ['First name', 'Last name', 'Surname']
+    # self.dataset = self.dataset.drop(to_drop, axis=1)  # drop the items that are not assessed yet
+    # to_drop = ['First name', 'Last name']
+    self.predict_dataset = self.predict_dataset.drop(columns=[col for col in to_drop if col in self.predict_dataset.columns])
 
     # DP - Why note use norm function here?
     self.normed_predict_dataset = self.predict_dataset / 100
 
 def predict_grades(self):
     # DP- does this need to be flattened? in some parts of BPV code it is, in other parts it's not
-    loss, mae, mse = self.model.evaluate(self.normed_test_data, self.test_labels, verbose=0)
-    print("Testing set Mean Abs Error: {:5.2f} marks".format(mae))
+    #loss, mae, mse = self.model.evaluate(self.normed_test_data, self.test_labels, verbose=0)
+    #print("Testing set Mean Abs Error: {:5.2f} marks".format(mae))
 
     self.test_predictions = self.model.predict(self.normed_predict_dataset).flatten()
     self.df_prediction = pd.DataFrame(self.test_predictions, columns=['Predicted Marks'])
     self.df_prediction['Student'] = self.raw_predict_dataset['First name']
-    self.df_prediction['Historical_marks'] = self.raw_dataset['Unit total']
+    #enable this only if there is stored data existing
+    #self.df_prediction['Historical_marks'] = self.raw_dataset['Unit total']
 
     self.df_Pred = pd.DataFrame()
-    generate_marks_histogram(self)
+    #enable this only if there is stored data( e.g. not a model load)
+    #generate_marks_histogram(self)
     self.df_Pred['Student_FirstName'] = self.raw_predict_dataset['First name']
-    self.df_Pred['Student_LastName'] = self.raw_predict_dataset['Last name']
+    if 'Last name' in self.raw_predict_dataset.columns:
+        self.df_Pred['Student_LastName'] = self.raw_predict_dataset['Last name']
+    elif 'Surname' in self.raw_predict_dataset.columns:
+        self.df_Pred['Student_LastName'] = self.raw_predict_dataset['Surname']
     self.df_temp_Pred = []
     self.df_temp_Pred = pd.DataFrame(self.test_predictions, columns=['Header'])
     self.df_Pred['Predicted Marks'] = self.df_temp_Pred['Header']
 
-def save_prediction_func(self):
-    self.df_Pred.to_excel("Prediction_output.xlsx")
-    self.df_Pred.to_csv('Prediction_output.csv', index=False)
+
 
 
 def generate_marks_histogram(self):
